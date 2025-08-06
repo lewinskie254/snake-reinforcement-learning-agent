@@ -17,6 +17,8 @@ SPEED = 40
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 
+FONT = pygame.font.Font('Retrolight.tff', 25)
+
 class Snake:
     def __init__(self, width=640, height=480):
         self.width = width
@@ -73,7 +75,8 @@ class Snake:
             pygame.draw.rect(self.display, GREY, pygame.Rect(point.x+4, point.y+4, BLOCK_SIZE-8, BLOCK_SIZE-8))
 
         pygame.draw.rect(self.display, GREY, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
-
+        text = FONT.render("score: " + self.score, True, GREY)
+        self.display.blit(text, [0, 0])
         pygame.display.flip()
 
     #place food 
