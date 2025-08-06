@@ -17,7 +17,7 @@ SPEED = 40
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 
-FONT = pygame.font.Font('Retrolight.ttf', 25)
+FONT = pygame.font.Font('Bellerose.ttf', 25)
 
 class Snake:
     def __init__(self, width=640, height=480):
