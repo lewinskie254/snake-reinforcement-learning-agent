@@ -10,9 +10,12 @@ class Direction(Enum):
     UP = 3
     DOWN = 4
 
-Point = namedtuple('Point', 'x', 'y')
+Point = namedtuple('Point', 'x, y')
 
 BLOCK_SIZE = 20
+SPEED = 40
+GREENISH = (227, 208, 149)
+GREY = (54, 69, 79)
 
 class Snake:
     def __init__(self, width=640, height=480):
@@ -38,8 +41,40 @@ class Snake:
         self._place_food() 
     
     def play_step(self):
-        return self.display
+        #collect user input 
+
+        #move 
+        self.move(self.direction)
+
+        #check if game is over 
+
+
+        #place new food 
+        
+
+        #update UI and clock 
+        self._update_ui()
+        self.clock.tick(SPEED)
+
+        #return game over and score 
+        game_over = False
+        return game_over, self.score 
     
+    def move(self, direction): 
+        ...
+    
+    #update UI
+    def _update_ui(self): 
+        self.display.fill(GREENISH)
+
+        for point in self.snake:
+            pygame.draw.rect(self.display, GREY, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(self.display, GREENISH, pygame.Rect(point.x+2, point.y+2, BLOCK_SIZE-4, BLOCK_SIZE-4))
+            pygame.draw.rect(self.display, GREY, pygame.Rect(point.x+4, point.y+4, BLOCK_SIZE-8, BLOCK_SIZE-8))
+
+        pygame.draw.rect(self.display, GREY, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        pygame.display.flip()
 
     #place food 
     def _place_food(self): 
@@ -55,13 +90,15 @@ if __name__ == "__main__":
 
     #game loop 
     while True: 
-        game.play_step()
+        game_over, score = game.play_step()
 
 
         #break if game over 
-        
-        #print final store 
+        if game_over == True:
+            break 
 
+    #print final store 
+    print(f"Final Score: {score}")
 
-        #pygame quit 
-        pygame.quit()
+    #pygame quit 
+    pygame.quit()
