@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib as plt 
 from .snake import Snake, Direction, Point, BLOCK_SIZE
 from collections import deque 
-
+from .model import Linear_QNet, QTrainer
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
@@ -14,10 +14,10 @@ class Agent:
     def __init__(self):
         self.number_of_games = 0 
         self.epsilon = 0 
-        self.gamma = 0 
+        self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = None 
-        self.trainer = None 
+        self.model = Linear_QNet(input_size=11, hidden_size=256, output_size=3)
+        self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
 
@@ -102,7 +102,7 @@ class Agent:
             action = random.choice(actions)
         else: 
             state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model.predict(state0)
+            prediction = self.model(state0)
             action = torch.argmax(prediction).item()
             action = actions[action]
 
@@ -143,7 +143,7 @@ def train():
 
             if score > best_score:
                 best_score = score 
-                #agent.model.save() 
+                agent.model.save() 
         print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
 
         #TODO: plot 
