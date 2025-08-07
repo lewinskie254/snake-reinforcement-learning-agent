@@ -33,33 +33,23 @@ class Snake:
         self.clock = pygame.time.Clock()
 
         # Init game state 
-        self.direction = Direction.RIGHT 
-        self.head = Point(self.width//2, self.height//2)
-        self.snake = [
-            self.head, 
-            Point(self.head.x - BLOCK_SIZE, self.head.y), 
-            Point(self.head.x - 2*BLOCK_SIZE, self.head.y)
-        ]
-
-        self.score = 0
-        self.food = None 
-        self._place_food() 
+     
     
-    def play_step(self):
+    def play_step(self, action):
         # Handle events
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
-                    self.direction = Direction.LEFT
-                elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
-                    self.direction = Direction.RIGHT
-                elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
-                    self.direction = Direction.UP
-                elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
-                    self.direction = Direction.DOWN 
+            # if event.type == pygame.KEYDOWN:
+            #     if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
+            #         self.direction = Direction.LEFT
+            #     elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
+            #         self.direction = Direction.RIGHT
+            #     elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
+            #         self.direction = Direction.UP
+            #     elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
+            #         self.direction = Direction.DOWN 
         
         # Move
         self.move(self.direction)
@@ -104,6 +94,21 @@ class Snake:
         if self.head in self.snake[1:]:
             return True
         return False
+    
+    def reset(self): 
+        self.direction = Direction.RIGHT 
+        self.head = Point(self.width//2, self.height//2)
+        self.snake = [
+            self.head, 
+            Point(self.head.x - BLOCK_SIZE, self.head.y), 
+            Point(self.head.x - 2*BLOCK_SIZE, self.head.y)
+        ]
+
+        self.score = 0
+        self.food = None 
+        self._place_food()
+        self.frame_iteration = 0 
+
 
     def _update_ui(self): 
         self.display.fill(GREENISH)
