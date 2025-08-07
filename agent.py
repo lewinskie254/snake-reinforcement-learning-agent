@@ -2,7 +2,7 @@ import torch
 import random 
 import numpy as np 
 import matplotlib as plt 
-from .snake import Snake, Direction, Point
+from .snake import Snake, Direction, Point, BLOCK_SIZE
 from collections import deque 
 
 
@@ -15,25 +15,98 @@ class Agent:
         self.number_of_games = 0 
         self.epsilon = 0 
         self.gamma = 0 
-        self.memory = deque(maxlen=MAX_MEMORY)
+        self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
+        self.model = None 
+        self.trainer = None 
         #TODO: model, trainer 
 
 
     def get_state(self, game):
-        pass
+        head = game.snake[0]
+        
+        # Using BLOCK_SIZE instead of self.margin
+        point_left = Point(head.x - BLOCK_SIZE, head.y)
+        point_right = Point(head.x + BLOCK_SIZE, head.y)
+        point_up = Point(head.x, head.y - BLOCK_SIZE)
+        point_down = Point(head.x, head.y + BLOCK_SIZE)
+
+        # Current direction
+        direction_left = game.direction == Direction.LEFT
+        direction_right = game.direction == Direction.RIGHT 
+        direction_up = game.direction == Direction.UP
+        direction_down = game.direction == Direction.DOWN
+
+        # Danger directly in front
+        danger_straight = (
+            (direction_up and game.is_collision(point_up)) or
+            (direction_down and game.is_collision(point_down)) or
+            (direction_left and game.is_collision(point_left)) or
+            (direction_right and game.is_collision(point_right))
+        )
+
+        # Danger to the right of current direction
+        danger_right = (
+            (direction_up and game.is_collision(point_right)) or
+            (direction_down and game.is_collision(point_left)) or
+            (direction_left and game.is_collision(point_up)) or
+            (direction_right and game.is_collision(point_down))
+        )
+
+        # Danger to the left of current direction
+        danger_left = (
+            (direction_up and game.is_collision(point_left)) or
+            (direction_down and game.is_collision(point_right)) or
+            (direction_left and game.is_collision(point_down)) or
+            (direction_right and game.is_collision(point_up))
+        )
+
+        # State vector for agent
+        state = [
+            danger_straight, danger_right, danger_left,
+            direction_left, direction_right, direction_up, direction_down,
+            game.food.x < head.x,   # food is to the left
+            game.food.x > head.x,   # food is to the right
+            game.food.y < head.y,   # food is above
+            game.food.y > head.y    # food is below
+        ]
+
+        return np.array(state, dtype=int)
+
 
     def remember(self, state, action, reward, next_state, done): 
-        pass
+        self.memory.append((state, action, reward, next_state, done))
 
     def train_long_memory(self, state, action, reward, next_state, done):
-        pass 
+        if len(self.memory) > BATCH_SIZE:
+            mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples 
+        else: 
+            mini_sample =self.memory 
+        mini_sample = np.array(mini_sample, dtype=object)  # Convert list of tuples to ndarray (dtype=object is important)
 
-    def train_short_memory(self):
-        pass 
+        states      = np.stack(mini_sample[:, 0])
+        actions     = np.stack(mini_sample[:, 1])
+        rewards     = np.stack(mini_sample[:, 2])
+        next_states = np.stack(mini_sample[:, 3])
+        dones       = np.stack(mini_sample[:, 4])
+        self.trainer.train_step(states, actions, rewards, next_states, dones)
+
+    def train_short_memory(self, state, action, reward, next_state, done):
+        self.trainer.train_step(state, action, reward, next_state, done)
+
 
     def get_action(self, state):
-        pass 
+        self.epsilon = 80 - self.number_of_games
+        actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
+        if random.randint(0, 200) < self.epsilon:
+            action = random.choice(actions)
+        else: 
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model.predict(state0)
+            action = torch.argmax(prediction).item()
+            action = actions[action]
+
+        return action 
 
 def train():
     plot_scores = []
@@ -45,7 +118,7 @@ def train():
 
     while True:
         # get the old state or current state 
-        state_old = agent.get_state()
+        state_old = agent.get_state(game)
 
         #get move 
         final_move = agent.get_action(state_old)
@@ -56,8 +129,25 @@ def train():
         #new state 
         state_new = agent.get_state()
 
-        #train short memory 
-        agent.train_short_memory()
+        #train short memory
+        agent.train_short_memory(state_old, final_move, reward, state_new, done)
+
+        #remember 
+        agent.remember(state_old, final_move, reward, state_new, done)
+
+        if done: 
+            #train the long memory 
+            game.reset()
+            agent.number_of_games += 1
+            agent.train_long_memory() 
+
+            if score > best_score:
+                best_score = score 
+                #agent.model.save() 
+        print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
+
+        #TODO: plot 
+            
 
 
 
