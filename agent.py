@@ -1,7 +1,7 @@
 import torch 
 import random 
 import numpy as np 
-import matplotlib as plt 
+import matplotlib.pyplot as plt 
 from snake import Snake, Direction, Point, BLOCK_SIZE, MULTIPLIER
 from collections import deque 
 from model import Linear_QNet, QTrainer
@@ -20,7 +20,7 @@ class Agent:
         self.epsilon = 0.1 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=15, hidden_size=256, output_size=3)
+        self.model = Linear_QNet(input_size=12, hidden_size=256, output_size=3)
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
@@ -28,15 +28,13 @@ class Agent:
     def get_state(self, game):
         head = game.snake[0]
 
-        steps_ahead = 1 if len(game.snake) < 10 else 2 if len(game.snake) < 30 else 3
-        point_forward = Point(head.x + steps_ahead * BLOCK_SIZE, head.y)
 
         
         # Using BLOCK_SIZE instead of self.margin
-        point_left = Point(head.x - steps_ahead * BLOCK_SIZE, head.y)
-        point_right = Point(head.x + steps_ahead * BLOCK_SIZE, head.y)
-        point_up = Point(head.x, head.y - steps_ahead * BLOCK_SIZE)
-        point_down = Point(head.x, head.y + steps_ahead * BLOCK_SIZE)
+        point_left = Point(head.x - BLOCK_SIZE, head.y)
+        point_right = Point(head.x +  BLOCK_SIZE, head.y)
+        point_up = Point(head.x, head.y - BLOCK_SIZE)
+        point_down = Point(head.x, head.y + BLOCK_SIZE)
 
         # Current direction
         direction_left = game.direction == Direction.LEFT
@@ -155,6 +153,11 @@ def train():
                 best_score = score 
                 agent.model.save() 
             print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
+
+            if len(plot_scores) >= 10:
+                best_recent = max(plot_scores[-10:])
+                if score > best_recent:
+                    agent.model.save('best_most_recent.pth')
 
             plot_scores.append(score)
             total_score += score 

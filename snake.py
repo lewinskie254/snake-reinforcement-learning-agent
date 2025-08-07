@@ -22,7 +22,7 @@ GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER
 BORDER = MARGIN - 10 * MULTIPLIER
-FONT = pygame.font.Font('Bellerose.ttf', 25*MULTIPLIER)
+FONT = pygame.font.Font('Bellerose.ttf', 20*MULTIPLIER)
 
 class Snake:
     def __init__(self, width=640*MULTIPLIER, height=480 * MULTIPLIER):
