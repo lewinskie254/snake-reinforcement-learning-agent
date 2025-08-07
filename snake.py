@@ -24,7 +24,7 @@ BORDER = MARGIN - 10
 FONT = pygame.font.Font('Bellerose.ttf', 25)
 
 class Snake:
-    def __init__(self, width=1280, height=960):
+    def __init__(self, width=640, height=480):
         self.width = width
         self.height = height
 
