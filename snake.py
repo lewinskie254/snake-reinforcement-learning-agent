@@ -58,6 +58,8 @@ class Snake:
             #     elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
             #         self.direction = Direction.DOWN 
         
+
+        
         # Move
         self.move(action)
         self.snake.insert(0, self.head)
@@ -72,7 +74,10 @@ class Snake:
 
         # Check collision or if the game takes way too long 
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
+            #hacky way hoping it works 
+            self.snake.pop(0)
             self.snake.pop()
+
             for point in self.snake:
                 pygame.draw.rect(self.display, CRASH, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
                 pygame.draw.rect(self.display, GREENISH, pygame.Rect(point.x+2, point.y+2, BLOCK_SIZE-4, BLOCK_SIZE-4))
