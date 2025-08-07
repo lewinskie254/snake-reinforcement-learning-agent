@@ -2,9 +2,10 @@ import torch
 import random 
 import numpy as np 
 import matplotlib as plt 
-from .snake import Snake, Direction, Point, BLOCK_SIZE
+from snake import Snake, Direction, Point, BLOCK_SIZE
 from collections import deque 
-from .model import Linear_QNet, QTrainer
+from model import Linear_QNet, QTrainer
+from helper import plot 
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
@@ -76,7 +77,7 @@ class Agent:
     def remember(self, state, action, reward, next_state, done): 
         self.memory.append((state, action, reward, next_state, done))
 
-    def train_long_memory(self, state, action, reward, next_state, done):
+    def train_long_memory(self):
         if len(self.memory) > BATCH_SIZE:
             mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples 
         else: 
@@ -115,6 +116,7 @@ def train():
     best_score = 0 
     agent = Agent()
     game = Snake()
+    agent.number_of_games += 1
 
     while True:
         # get the old state or current state 
@@ -127,7 +129,7 @@ def train():
         reward, done, score = game.play_step(final_move)
 
         #new state 
-        state_new = agent.get_state()
+        state_new = agent.get_state(game)
 
         #train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -146,7 +148,11 @@ def train():
                 agent.model.save() 
         print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
 
-        #TODO: plot 
+        plot_scores.append(score)
+        total_score += score 
+        mean_score = total_score / agent.number_of_games 
+        plot_mean_scores.append(mean_score)
+        plot(plot_scores, plot_mean_scores)
             
 
 

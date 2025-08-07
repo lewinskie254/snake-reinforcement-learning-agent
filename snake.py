@@ -16,7 +16,7 @@ Point = namedtuple('Point', 'x, y')
 
 # Constants
 BLOCK_SIZE = 20
-SPEED = 10
+SPEED = 60
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 
@@ -24,7 +24,7 @@ BORDER = MARGIN - 10
 FONT = pygame.font.Font('Bellerose.ttf', 25)
 
 class Snake:
-    def __init__(self, width=640, height=480):
+    def __init__(self, width=1280, height=960):
         self.width = width
         self.height = height
 
@@ -34,6 +34,7 @@ class Snake:
         self.clock = pygame.time.Clock()
 
         # Init game state 
+        self.reset()  # <-- add this line
      
     
     def play_step(self, action):
@@ -74,7 +75,7 @@ class Snake:
         self._update_ui()
         self.clock.tick(SPEED)
 
-        return False, self.score 
+        return reward, False, self.score 
     
     def move(self, action): 
         x, y = self.head.x, self.head.y 
