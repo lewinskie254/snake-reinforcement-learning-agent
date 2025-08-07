@@ -1,3 +1,4 @@
+
 import pygame 
 import random 
 from enum import Enum
@@ -16,7 +17,7 @@ Point = namedtuple('Point', 'x, y')
 
 # Constants
 BLOCK_SIZE = 20
-SPEED = 60
+SPEED = 40
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 
@@ -57,7 +58,7 @@ class Snake:
         # Move
         self.move(action)
         self.snake.insert(0, self.head)
-
+        reward = 0
         # Check if food is eaten
         if self.head == self.food:
             self.score += 1
@@ -66,13 +67,12 @@ class Snake:
         else:
             self.snake.pop()
 
-        reward = 0
         # Check collision or if the game takes way too long 
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             reward -= 10
             return reward, True, self.score
 
-        reward -= 0.01 * len(self.snake)
+        reward -= 0.01 * 1/len(self.snake)
         # Update UI
         self._update_ui()
         self.clock.tick(SPEED)
