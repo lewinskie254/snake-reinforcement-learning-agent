@@ -61,6 +61,7 @@ class Snake:
         # Check if food is eaten
         if self.head == self.food:
             self.score += 1
+            reward += 10  # positive reward for eating
             self._place_food()
         else:
             self.snake.pop()
@@ -71,6 +72,7 @@ class Snake:
             reward -= 10
             return reward, True, self.score
 
+        reward -= 0.01 * len(self.snake)
         # Update UI
         self._update_ui()
         self.clock.tick(SPEED)
