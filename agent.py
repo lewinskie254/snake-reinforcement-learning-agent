@@ -9,7 +9,7 @@ from helper import plot
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
-LR = 0.001
+LR = 0.1
 
 class Agent:
     def __init__(self):
@@ -146,14 +146,14 @@ def train():
             if score > best_score:
                 best_score = score 
                 agent.model.save() 
-        print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
+            print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
 
-        plot_scores.append(score)
-        total_score += score 
-        mean_score = total_score / agent.number_of_games 
-        plot_mean_scores.append(mean_score)
-        plot(plot_scores, plot_mean_scores)
-            
+            plot_scores.append(score)
+            total_score += score 
+            mean_score = total_score / agent.number_of_games 
+            plot_mean_scores.append(mean_score)
+            plot(plot_scores, plot_mean_scores)
+                
 
 
 
