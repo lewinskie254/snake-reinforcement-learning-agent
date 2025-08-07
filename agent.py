@@ -10,17 +10,13 @@ from helper import plot
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
 LR = 0.001
-GRID_WIDTH = 640 * MULTIPLIER// BLOCK_SIZE
-GRID_HEIGHT = 480 * MULTIPLIER// BLOCK_SIZE
-MAX_SNAKE_LENGTH = GRID_WIDTH * GRID_HEIGHT
-
 class Agent:
     def __init__(self):
         self.number_of_games = 0 
         self.epsilon = 0.1 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=12, hidden_size=256, output_size=3)
+        self.model = Linear_QNet(input_size=11, hidden_size=256, output_size=3)
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
@@ -74,7 +70,6 @@ class Agent:
             game.food.x > head.x,   # food is to the right
             game.food.y < head.y,   # food is above
             game.food.y > head.y,   # food is below
-            len(game.snake) / MAX_SNAKE_LENGTH
         ]
 
         return np.array(state, dtype=int)
