@@ -4,6 +4,7 @@ import random
 from enum import Enum
 from collections import namedtuple
 import numpy as np 
+import pygame.time
 
 pygame.init()
 
@@ -23,6 +24,8 @@ GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER
 BORDER = MARGIN - 10 * MULTIPLIER
 FONT = pygame.font.Font('Bellerose.ttf', 20*MULTIPLIER)
+
+CRASH = (138, 154, 91)
 
 class Snake:
     def __init__(self, width=640*MULTIPLIER, height=480 * MULTIPLIER):
@@ -69,6 +72,13 @@ class Snake:
 
         # Check collision or if the game takes way too long 
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
+            self.snake.pop()
+            for point in self.snake:
+                pygame.draw.rect(self.display, CRASH, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(self.display, GREENISH, pygame.Rect(point.x+2, point.y+2, BLOCK_SIZE-4, BLOCK_SIZE-4))
+                pygame.draw.rect(self.display, CRASH, pygame.Rect(point.x+4, point.y+4, BLOCK_SIZE-8, BLOCK_SIZE-8))
+            pygame.display.update()
+            pygame.time.delay(500)  # delay for 0.5 seconds
             reward -= 10
             return reward, True, self.score
 
