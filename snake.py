@@ -14,18 +14,18 @@ class Direction(Enum):
     DOWN = 4
 
 Point = namedtuple('Point', 'x, y')
-
+MULTIPLIER =2 
 # Constants
-BLOCK_SIZE = 20
+BLOCK_SIZE = 20*MULTIPLIER
 SPEED = 40
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
-MARGIN = 50 
-BORDER = MARGIN - 10
-FONT = pygame.font.Font('Bellerose.ttf', 25)
+MARGIN = 50 * MULTIPLIER
+BORDER = MARGIN - 10 * MULTIPLIER
+FONT = pygame.font.Font('Bellerose.ttf', 25*MULTIPLIER)
 
 class Snake:
-    def __init__(self, width=640, height=480):
+    def __init__(self, width=640*MULTIPLIER, height=480 * MULTIPLIER):
         self.width = width
         self.height = height
 
@@ -62,7 +62,7 @@ class Snake:
         # Check if food is eaten
         if self.head == self.food:
             self.score += 1
-            reward += 10  # positive reward for eating
+            reward += 10 + len(self.snake) // 2  # base reward + moderate growth incentive 
             self._place_food()
         else:
             self.snake.pop()
@@ -148,7 +148,7 @@ class Snake:
 
         # Score + Borders
         text = FONT.render(f"score: {self.score}" , True, GREY)
-        self.display.blit(text, [20, 0])
+        self.display.blit(text, [MARGIN, 0])
 
         pygame.draw.line(self.display, GREY, [BORDER, BORDER], [self.width - BORDER, BORDER], width=2)
         pygame.draw.line(self.display, GREY, [BORDER, BORDER], [BORDER, self.height - BORDER], width=2)

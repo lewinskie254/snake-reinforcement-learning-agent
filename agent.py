@@ -2,34 +2,41 @@ import torch
 import random 
 import numpy as np 
 import matplotlib as plt 
-from snake import Snake, Direction, Point, BLOCK_SIZE
+from snake import Snake, Direction, Point, BLOCK_SIZE, MULTIPLIER
 from collections import deque 
 from model import Linear_QNet, QTrainer
 from helper import plot 
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
-LR = 0.1
+LR = 0.001
+GRID_WIDTH = 640 * MULTIPLIER// BLOCK_SIZE
+GRID_HEIGHT = 480 * MULTIPLIER// BLOCK_SIZE
+MAX_SNAKE_LENGTH = GRID_WIDTH * GRID_HEIGHT
 
 class Agent:
     def __init__(self):
         self.number_of_games = 0 
-        self.epsilon = 0 
+        self.epsilon = 0.1 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=11, hidden_size=256, output_size=3)
+        self.model = Linear_QNet(input_size=15, hidden_size=256, output_size=3)
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
 
     def get_state(self, game):
         head = game.snake[0]
+
+        steps_ahead = 1 if len(game.snake) < 10 else 2 if len(game.snake) < 30 else 3
+        point_forward = Point(head.x + steps_ahead * BLOCK_SIZE, head.y)
+
         
         # Using BLOCK_SIZE instead of self.margin
-        point_left = Point(head.x - BLOCK_SIZE, head.y)
-        point_right = Point(head.x + BLOCK_SIZE, head.y)
-        point_up = Point(head.x, head.y - BLOCK_SIZE)
-        point_down = Point(head.x, head.y + BLOCK_SIZE)
+        point_left = Point(head.x - steps_ahead * BLOCK_SIZE, head.y)
+        point_right = Point(head.x + steps_ahead * BLOCK_SIZE, head.y)
+        point_up = Point(head.x, head.y - steps_ahead * BLOCK_SIZE)
+        point_down = Point(head.x, head.y + steps_ahead * BLOCK_SIZE)
 
         # Current direction
         direction_left = game.direction == Direction.LEFT
@@ -68,7 +75,8 @@ class Agent:
             game.food.x < head.x,   # food is to the left
             game.food.x > head.x,   # food is to the right
             game.food.y < head.y,   # food is above
-            game.food.y > head.y    # food is below
+            game.food.y > head.y,   # food is below
+            len(game.snake) / MAX_SNAKE_LENGTH
         ]
 
         return np.array(state, dtype=int)
@@ -96,10 +104,10 @@ class Agent:
 
 
     def get_action(self, state):
-        self.epsilon = 80 - self.number_of_games
+        self.epsilon = 0.1
         actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-        if random.randint(0, 200) < self.epsilon:
+        if random.random() < self.epsilon:
             action = random.choice(actions)
         else: 
             state0 = torch.tensor(state, dtype=torch.float)
