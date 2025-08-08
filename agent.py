@@ -16,7 +16,7 @@ class Agent:
         self.epsilon = 0.1 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=11, hidden_size=256, output_size=3)
+        self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
@@ -96,11 +96,11 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
 
-    def get_action(self, state):
-        self.epsilon = 80 - self.number_of_games
+    def get_action(self, state, epsilon=0.1) :
+        self.epsilon = epsilon
         actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-        if random.randint(0, 200) < self.epsilon:
+        if random.random() < self.epsilon:
             action = random.choice(actions)
         else: 
             state0 = torch.tensor(state, dtype=torch.float)
@@ -165,11 +165,12 @@ def train():
 def play():
     agent = Agent()
     agent.model.load(r'C:\\Users\\dell\\Desktop\\snake\\models\\best_most_recent.pth')  # or 'best_most_recent.pth' if that's what you want to test
+    epsilon = 0  # <-- Disable exploration
     game = Snake()
 
     while True:
         state = agent.get_state(game)
-        final_move = agent.get_action(state)  # This uses the model since epsilon is low after training
+        final_move = agent.get_action(state, epsilon)  # This uses the model since epsilon is low after training
 
         reward, done, score = game.play_step(final_move)
 

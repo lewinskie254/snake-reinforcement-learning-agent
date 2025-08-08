@@ -18,7 +18,7 @@ Point = namedtuple('Point', 'x, y')
 MULTIPLIER =2 
 # Constants
 BLOCK_SIZE = 20*MULTIPLIER
-SPEED = 40
+SPEED = 60
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER
@@ -41,7 +41,7 @@ class Snake:
         self.reset()  # <-- add this line
      
     
-    def play_step(self, action):
+    def play_step(self, action=None, manual=False):
         self.frame_iteration += 1
         # Handle events
         for event in pygame.event.get(): 
@@ -61,7 +61,10 @@ class Snake:
 
         
         # Move
-        self.move(action)
+        if manual:
+            self.move_manual()
+        else:
+            self.move(action)
         self.snake.insert(0, self.head)
         reward = 0
         # Check if food is eaten
@@ -89,6 +92,7 @@ class Snake:
         # Update UI
         self._update_ui()
         self.clock.tick(SPEED)
+        reward-= 0.1 
 
         return reward, False, self.score 
     
@@ -146,6 +150,20 @@ class Snake:
         self._place_food()
         self.frame_iteration = 0 
 
+    def move_manual(self):
+        x, y = self.head.x, self.head.y
+
+        if self.direction == Direction.RIGHT:
+            x += BLOCK_SIZE
+        elif self.direction == Direction.LEFT:
+            x -= BLOCK_SIZE
+        elif self.direction == Direction.UP:
+            y -= BLOCK_SIZE
+        elif self.direction == Direction.DOWN:
+            y += BLOCK_SIZE
+
+        self.head = Point(x, y)
+
 
     def _update_ui(self): 
         self.display.fill(GREENISH)
@@ -183,11 +201,30 @@ class Snake:
                 self.food = food
                 break
 
-# if __name__ == "__main__":
-#     game = Snake()
-#     while True: 
-#         game_over, score = game.play_step()
-#         if game_over:
-#             break 
-#     print(f"Final Score: {score}")
-#     pygame.quit()
+def play_manual():
+    game = Snake()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT and game.direction != Direction.RIGHT:
+                    game.direction = Direction.LEFT
+                elif event.key == pygame.K_RIGHT and game.direction != Direction.LEFT:
+                    game.direction = Direction.RIGHT
+                elif event.key == pygame.K_UP and game.direction != Direction.DOWN:
+                    game.direction = Direction.UP
+                elif event.key == pygame.K_DOWN and game.direction != Direction.UP:
+                    game.direction = Direction.DOWN
+
+        reward, done, score = game.play_step(manual=True)
+
+        if done:
+            print('Game Over. Score:', score)
+            game.reset()
+
+if __name__ == "__main__":
+    play_manual()
