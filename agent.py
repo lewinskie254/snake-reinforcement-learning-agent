@@ -15,10 +15,9 @@ MODEL_TO_USE = 'models/best_most_recent.pth'
 class Agent:
     def __init__(self, model_path=None):
         self.number_of_games = 0 
-        self.epsilon = 0.01 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
+        self.model = Linear_QNet(input_size=14, hidden_size=392, output_size=3)
         self.model_path = model_path
         if self.model_path:
             self.model.load(model_path)  # Load weights if path is provided
@@ -67,6 +66,8 @@ class Agent:
             (direction_right and game.is_collision(point_up))
         )
 
+        point_in_body_x, point_in_body_y = self.body_in_the_way(game.snake[0], game.direction, game.snake)
+
         # State vector for agent
         state = [
             danger_straight, danger_right, danger_left,
@@ -75,9 +76,52 @@ class Agent:
             game.food.x > head.x,   # food is to the right
             game.food.y < head.y,   # food is above
             game.food.y > head.y,   # food is below
+            self.is_path_blocked_by_body(game.snake[0], game.food, game.snake, game.width, game.height), 
+            point_in_body_x == game.snake[0].x +BLOCK_SIZE or point_in_body_x == game.snake[0].x -BLOCK_SIZE,
+            point_in_body_y == game.snake[0].y +BLOCK_SIZE or point_in_body_y == game.snake[0].y -BLOCK_SIZE,
         ]
 
         return np.array(state, dtype=int)
+    
+    def is_path_blocked_by_body(self, start, target, snake_body, board_width, board_height):
+        visited = set()
+        queue = deque()
+        queue.append(start)
+
+        snake_body = set(snake_body)  # Fast lookup
+
+        while queue:
+            pos = queue.popleft()
+            if pos == target:
+                return False  # Path exists
+
+            for dx, dy in [(-BLOCK_SIZE, 0), (BLOCK_SIZE, 0), (0, -BLOCK_SIZE), (0, BLOCK_SIZE)]:
+                next_pos = Point(pos.x + dx, pos.y + dy)
+                
+                # Stay within bounds
+                if not (0 <= next_pos.x < board_width and 0 <= next_pos.y < board_height):
+                    continue
+
+                if next_pos in snake_body or next_pos in visited:
+                    continue
+
+                visited.add(next_pos)
+                queue.append(next_pos)
+
+        return True  # No path found → body blocks it
+
+
+    def body_in_the_way(self, head, direction, body):
+        if direction == Direction.LEFT:
+            next_point = Point(head.x - BLOCK_SIZE, head.y)
+        elif direction == Direction.RIGHT:
+            next_point = Point(head.x + BLOCK_SIZE, head.y)
+        elif direction == Direction.UP:
+            next_point = Point(head.x, head.y - BLOCK_SIZE)
+        elif direction == Direction.DOWN:
+            next_point = Point(head.x, head.y + BLOCK_SIZE)
+        
+        return (next_point.x, next_point.y) if next_point in body else (0, 0)
 
 
     def remember(self, state, action, reward, next_state, done): 
@@ -102,6 +146,8 @@ class Agent:
 
 
     def get_action(self, state, epsilon=0.1) :
+        if self.number_of_games > 80:
+            epsilon = 0 
         self.epsilon = epsilon
         actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
@@ -120,9 +166,10 @@ def train():
     plot_mean_scores = []
     total_score = 0
     best_score = 0 
-    agent = Agent(model_path=MODEL_TO_USE)
+    agent = Agent()
     game = Snake()
     agent.number_of_games += 1
+
 
     while True:
         # get the old state or current state 
@@ -163,7 +210,8 @@ def train():
             total_score += score 
             mean_score = total_score / agent.number_of_games 
             plot_mean_scores.append(mean_score)
-            plot(plot_scores, plot_mean_scores)
+            if agent.number_of_games % 100 == 1: 
+                plot(plot_scores, plot_mean_scores)
                 
 
 
@@ -184,5 +232,5 @@ def play():
 
 
 if __name__ == "__main__":
-    train() 
-    #play()
+    #train() 
+    play()
