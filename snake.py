@@ -67,7 +67,7 @@ class Snake:
         # Check if food is eaten
         if self.head == self.food:
             self.score += 1
-            reward += 10 + len(self.snake) // 2  # base reward + moderate growth incentive 
+            reward += 10 
             self._place_food()
         else:
             self.snake.pop()
@@ -86,8 +86,6 @@ class Snake:
             pygame.time.delay(500)  # delay for 0.5 seconds
             reward -= 10
             return reward, True, self.score
-
-        reward -= 0.01 * 1/len(self.snake)
         # Update UI
         self._update_ui()
         self.clock.tick(SPEED)

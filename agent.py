@@ -97,10 +97,10 @@ class Agent:
 
 
     def get_action(self, state):
-        self.epsilon = 0.1
+        self.epsilon = 80 - self.number_of_games
         actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-        if random.random() < self.epsilon:
+        if random.randint(0, 200) < self.epsilon:
             action = random.choice(actions)
         else: 
             state0 = torch.tensor(state, dtype=torch.float)
@@ -162,9 +162,23 @@ def train():
                 
 
 
+def play():
+    agent = Agent()
+    agent.model.load(r'C:\\Users\\dell\\Desktop\\snake\\models\\best_most_recent.pth')  # or 'best_most_recent.pth' if that's what you want to test
+    game = Snake()
+
+    while True:
+        state = agent.get_state(game)
+        final_move = agent.get_action(state)  # This uses the model since epsilon is low after training
+
+        reward, done, score = game.play_step(final_move)
+
+        if done:
+            print('Game Over. Score:', score)
+            game.reset()
 
 
 
 if __name__ == "__main__":
-    train() 
-
+    #train() 
+    play()
