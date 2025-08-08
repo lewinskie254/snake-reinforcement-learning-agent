@@ -10,7 +10,7 @@ from helper import plot
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
 LR = 0.001
-MODEL_TO_USE = 'models/best_most_recent.pth'
+MODEL_TO_USE = 'models/model.pth'
      # Load and continue training from a saved model
 class Agent:
     def __init__(self, model_path=None):
@@ -166,15 +166,14 @@ def train():
     plot_mean_scores = []
     total_score = 0
     best_score = 0 
-    agent = Agent()
-    game = Snake()
+    agent = Agent(model_path=MODEL_TO_USE)
     agent.number_of_games += 1
 
+    game = Snake()
 
     while True:
         # get the old state or current state 
         state_old = agent.get_state(game)
-
         #get move 
         final_move = agent.get_action(state_old)
 
@@ -232,5 +231,5 @@ def play():
 
 
 if __name__ == "__main__":
-    #train() 
-    play()
+    train() 
+    #play()
