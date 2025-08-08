@@ -11,12 +11,15 @@ MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
 LR = 0.001
 class Agent:
-    def __init__(self):
+    def __init__(self, model_path=None):
         self.number_of_games = 0 
         self.epsilon = 0.1 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
         self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
+        self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
+        if model_path:
+            self.model.load(model_path)  # Load weights if path is provided
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
 
@@ -163,8 +166,11 @@ def train():
 
 
 def play():
-    agent = Agent()
-    agent.model.load(r'C:\\Users\\dell\\Desktop\\snake\\models\\best_most_recent.pth')  # or 'best_most_recent.pth' if that's what you want to test
+
+    model_to_use = r'C:\\Users\\dell\\Desktop\\snake\\models\\models\\best_most_recent.pth'
+     # Load and continue training from a saved model
+    agent = Agent(model_path=model_to_use )
+    agent.model.load(model_to_use)  # or 'best_most_recent.pth' if that's what you want to test
     epsilon = 0  # <-- Disable exploration
     game = Snake()
 
@@ -181,5 +187,5 @@ def play():
 
 
 if __name__ == "__main__":
-    #train() 
-    play()
+    train() 
+    #play()
