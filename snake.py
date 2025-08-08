@@ -15,10 +15,10 @@ class Direction(Enum):
     DOWN = 4
 
 Point = namedtuple('Point', 'x, y')
-MULTIPLIER =3
+MULTIPLIER =1
 # Constants
 BLOCK_SIZE = 20*MULTIPLIER
-SPEED = 20
+SPEED = 60
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER

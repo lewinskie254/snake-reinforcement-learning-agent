@@ -10,15 +10,17 @@ from helper import plot
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
 LR = 0.001
+MODEL_TO_USE = 'models/best_most_recent.pth'
+     # Load and continue training from a saved model
 class Agent:
     def __init__(self, model_path=None):
         self.number_of_games = 0 
-        self.epsilon = 0.1 
+        self.epsilon = 0.01 
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
         self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
-        self.model = Linear_QNet(input_size=11, hidden_size=242, output_size=3)
-        if model_path:
+        self.model_path = model_path
+        if self.model_path:
             self.model.load(model_path)  # Load weights if path is provided
         self.trainer = QTrainer(model=self.model, learning_rate=LR, gamma=self.gamma)
         #TODO: model, trainer 
@@ -118,7 +120,7 @@ def train():
     plot_mean_scores = []
     total_score = 0
     best_score = 0 
-    agent = Agent()
+    agent = Agent(model_path=MODEL_TO_USE)
     game = Snake()
     agent.number_of_games += 1
 
@@ -166,18 +168,13 @@ def train():
 
 
 def play():
-
-    model_to_use = r'C:\\Users\\dell\\Desktop\\snake\\models\\models\\best_most_recent.pth'
-     # Load and continue training from a saved model
-    agent = Agent(model_path=model_to_use )
-    agent.model.load(model_to_use)  # or 'best_most_recent.pth' if that's what you want to test
+    agent = Agent(model_path=MODEL_TO_USE)
     epsilon = 0  # <-- Disable exploration
     game = Snake()
 
     while True:
         state = agent.get_state(game)
-        final_move = agent.get_action(state, epsilon)  # This uses the model since epsilon is low after training
-
+        final_move = agent.get_action(state, epsilon)
         reward, done, score = game.play_step(final_move)
 
         if done:
