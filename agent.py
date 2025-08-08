@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from snake import Snake, Direction, Point, BLOCK_SIZE, MULTIPLIER
 from collections import deque 
-from model import Linear_QNet, QTrainer
+from model import Conv_QNet, Linear_QNet, QTrainer
 from helper import plot 
+from mcts import MCTSAgent
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000 
@@ -13,11 +14,22 @@ LR = 0.001
 MODEL_TO_USE = 'models/model.pth'
      # Load and continue training from a saved model
 class Agent:
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, grid_height=20, grid_width = 20 ):
         self.number_of_games = 0 
         self.gamma = 0.9
+        self.input_channels = 3  # or 3 if you're using RGB channels; adjust based on your input shape
         self.memory = deque(maxlen=MAX_MEMORY) #if it exceeds Max Memory it deque.popleft()
-        self.model = Linear_QNet(input_size=14, hidden_size=392, output_size=3)
+        #self.model = Linear_QNet(input_size=14, hidden_size=392, output_size=3)
+        self.grid_height = grid_height  # or from game
+        self.grid_width = grid_width   # or from game
+
+        self.model = Conv_QNet(
+            input_channels=self.input_channels,
+            height=self.grid_height,
+            width=self.grid_width,
+            output_size=3  # [straight, right, left]
+        )
+
         self.model_path = model_path
         if self.model_path:
             self.model.load(model_path)  # Load weights if path is provided
@@ -160,28 +172,63 @@ class Agent:
             action = actions[action]
 
         return action 
+    
+    def get_cnn_action(self, state, epsilon=0.1):
+        self.epsilon = epsilon
+        actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+        if random.random() < self.epsilon:
+            return random.choice(actions)
+
+        state_tensor = torch.tensor(state, dtype=torch.float).unsqueeze(0)  # Shape: [1, 3, H, W]
+        prediction = self.model(state_tensor)
+        action_idx = torch.argmax(prediction).item()
+        return actions[action_idx]
+
+    
+    def get_cnn_state(self, game):
+        grid = np.zeros((3, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE), dtype=np.float32)
+
+        for i, point in enumerate(game.snake):
+            x, y = point.x // BLOCK_SIZE, point.y // BLOCK_SIZE
+            if i == 0:
+                grid[0][y][x] = 1.0  # Head
+            else:
+                grid[0][y][x] = 0.5  # Body
+
+        food_x, food_y = game.food.x // BLOCK_SIZE, game.food.y // BLOCK_SIZE
+        grid[1][food_y][food_x] = 1.0  # Food
+
+        # Optional wall layer (if needed)
+        grid[2][0, :] = 1.0
+        grid[2][-1, :] = 1.0
+        grid[2][:, 0] = 1.0
+        grid[2][:, -1] = 1.0
+
+        return grid
 
 def train():
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     best_score = 0 
-    agent = Agent(model_path=MODEL_TO_USE)
-    agent.number_of_games += 1
 
     game = Snake()
+    agent = Agent(model_path=None, grid_height=game.height//BLOCK_SIZE, grid_width=game.width//BLOCK_SIZE)
+    agent.number_of_games += 1
 
     while True:
         # get the old state or current state 
-        state_old = agent.get_state(game)
+        #state_old = agent.get_state(game)
+        state_old = agent.get_cnn_state(game)
         #get move 
-        final_move = agent.get_action(state_old)
-
+        #final_move = agent.get_action(state_old)
+        final_move = agent.get_cnn_action(state_old)
         #perform the move 
         reward, done, score = game.play_step(final_move)
 
         #new state 
-        state_new = agent.get_state(game)
+        state_new = agent.get_cnn_state(game)
 
         #train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -220,10 +267,22 @@ def play():
     game = Snake()
 
     while True:
-        state = agent.get_state(game)
-        final_move = agent.get_action(state, epsilon)
+        state = agent.get_cnn_state(game)
+        #final_move = agent.get_action(state, epsilon)
+        final_move = agent.get_cnn_action(game)
         reward, done, score = game.play_step(final_move)
 
+        if done:
+            print('Game Over. Score:', score)
+            game.reset()
+
+def play_mcts():
+    agent = MCTSAgent(simulations_per_move=50)  # Adjust for speed/quality
+    game = Snake()
+
+    while True:
+        action = agent.select_action(game)
+        reward, done, score = game.play_step(action)
         if done:
             print('Game Over. Score:', score)
             game.reset()
@@ -233,3 +292,4 @@ def play():
 if __name__ == "__main__":
     train() 
     #play()
+    #play_mcts()
