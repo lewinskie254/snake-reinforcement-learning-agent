@@ -263,61 +263,35 @@ def train():
 
 def play():
     agent = Agent(model_path=MODEL_TO_USE)
-    epsilon = 0  # disable exploration for play
+    epsilon = 0  # <-- Disable exploration
     game = Snake()
-
-    wiggle_moves = 0          # persist across frames
-    current_mode = 'ASTAR'    # 'ASTAR' | 'HAMILTONIAN' | 'DQN'
 
     while True:
         state = agent.get_state(game)
-
-        # NOTE: ensure danger_zone_checker signature matches this call.
-        # If your method is danger_zone_checker(head, step_size=...), keep as-is.
-        danger = game.danger_zone_checker(game.snake[0], step_size=2)
-
-        # Trigger Hamiltonian-like safe behavior for several frames
-        if danger and wiggle_moves <= 0:
-            wiggle_moves = 77
-            current_mode = 'HAMILTONIAN'
-
-        # If snake long, small-duration check to trigger extra safety
-        if len(game.snake) > 60:
-            danger_long = game.danger_zone_checker(game.snake[0], step_size=max(2, len(game.snake)//20))
-            if danger_long and wiggle_moves <= 0:
-                wiggle_moves = 10
-                current_mode = 'HAMILTONIAN'
-
-        # Decide action by priority:
-        final_move = None
-        if wiggle_moves > 0:
-            # Execute safe pathing mode (what you called Hamiltonian / safest A*)
-            print("Algorithm: Hamiltonian/Safe")
-            final_move = game.get_safest_astar_action()
-            wiggle_moves -= 1
-            if wiggle_moves <= 0:
-                current_mode = 'ASTAR'   # revert after done
-        else:
-            # Normal preference: A* first, then DQN fallback
-            final_move = game.get_next_astar_action()
-            if final_move is not None:
-                print("Algorithm: A*")
-            else:
-                print("Algorithm: DQN")
+        
+        final_move = game.get_next_astar_action()
+        if final_move is not None: 
+            print("Algorithm: A")
+        if final_move is None: 
+            print("Algorithm: DQN")
+            final_move = agent.get_action(state, epsilon)
+            #final_move = agent.get_cnn_action(game)
+        if len(game.snake) > 70:
+            danger, food_zone = game.danger_zone_checker(game.snake[0])
+            wiggle_moves = 0
+            if danger and food_zone: 
                 final_move = agent.get_action(state, epsilon)
-
-        # If final_move still None (safety), fall back to straight
-        if final_move is None:
-            final_move = [1, 0, 0]
-
+            if wiggle_moves > 0:
+                wiggle_moves = len(game.snake)//2  
+                wiggle_moves -= 1
+                final_move = game.get_safest_astar_action()
+            else: 
+                final_move = agent.get_action(state, epsilon)
         reward, done, score = game.play_step(final_move)
 
         if done:
             print('Game Over. Score:', score)
             game.reset()
-            # reset runtime state so play restarts cleanly
-            wiggle_moves = 0
-            current_mode = 'ASTAR'
 
 def play_mcts():
     agent = MCTSAgent(simulations_per_move=50)  # Adjust for speed/quality

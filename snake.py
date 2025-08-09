@@ -472,10 +472,11 @@ class Snake:
         point_up_2 = Point(head.x, two_up)
         point_down_1 = Point(head.x, vertical_down)
         point_down_2 = Point(head.x, two_down)
+        food_zone = False
 
         #Prioritize eating 
         if self.is_collision(self.food): 
-            return False
+            food_zone = True
 
 
         danger = False
@@ -500,7 +501,7 @@ class Snake:
                     (self.is_collision(point_down_2) and self.is_collision(point_forward_2)) or \
                     (self.is_collision(point_down_2) and self.is_collision(point_backward_2))
 
-        return danger
+        return danger, food_zone
 
 
 
