@@ -453,10 +453,10 @@ class Snake:
         return stretched
         
     def danger_zone_checker(self, head, step_size=2):
-        horizontal_forward = head.x + BLOCK_SIZE
-        horizontal_backward = head.x - BLOCK_SIZE
-        vertical_up = head.y - BLOCK_SIZE
-        vertical_down = head.y + BLOCK_SIZE
+        horizontal_forward = head.x + step_size//2 * BLOCK_SIZE
+        horizontal_backward = head.x - step_size//2 * BLOCK_SIZE
+        vertical_up = head.y - step_size//2 * BLOCK_SIZE
+        vertical_down = head.y + step_size//2 * BLOCK_SIZE
 
         two_forward = head.x + step_size * BLOCK_SIZE
         two_backward = head.x - step_size * BLOCK_SIZE
@@ -472,6 +472,11 @@ class Snake:
         point_up_2 = Point(head.x, two_up)
         point_down_1 = Point(head.x, vertical_down)
         point_down_2 = Point(head.x, two_down)
+
+        #Prioritize eating 
+        if self.is_collision(self.food): 
+            return False
+
 
         danger = False
         if self.direction == Direction.LEFT:
