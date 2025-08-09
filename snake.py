@@ -19,7 +19,7 @@ class Direction(Enum):
 MULTIPLIER =2
 # Constants
 BLOCK_SIZE = 20*MULTIPLIER
-SPEED = 30
+SPEED = 20
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER
@@ -277,6 +277,29 @@ class Snake:
                     grid[2][r][c] = 1
 
         return grid
+    
+
+    def food_in_tight_spot(self,): 
+        x_food, y_food = self.food.x, self.food.y
+
+        left_most_x = float("inf")
+        right_most_x = -float("inf")
+
+        top_most_y = float("inf")
+        bottom_most_y = -float("inf")
+
+        for point in self.snake[1:]: 
+            left_most_x = min(left_most_x, point.x)
+            right_most_x = max(right_most_x, point.x)
+            top_most_y = min(top_most_y, point.y)
+            bottom_most_y = max(bottom_most_y, point.y)
+        
+        condition = ((left_most_x - 2*BLOCK_SIZE) < x_food < (right_most_x - 2*BLOCK_SIZE)) and ((top_most_y + 2*BLOCK_SIZE) < y_food < (bottom_most_y - 2*BLOCK_SIZE))
+        if condition: 
+            print(f"Food x {x_food}, leftMost x = {left_most_x - 2*BLOCK_SIZE}, rightMost x = {(right_most_x - 2*BLOCK_SIZE)}")
+            print((f"Food y = {y_food}, topMost y = {(top_most_y + 2*BLOCK_SIZE)} bottomMost y = {(bottom_most_y - 2*BLOCK_SIZE)} "))
+
+        return condition
 
 
 

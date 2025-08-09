@@ -261,37 +261,68 @@ def train():
                 
 
 
+def choose_action(agent, game, state, epsilon, wiggle_moves):
+    """Decide which move to take based on game state."""
+    danger, food_zone = game.danger_zone_checker(game.snake[0])
+
+    # Wiggle handling
+    if wiggle_moves > 0:
+        print("Hamiltonian Agent - Wiggle")
+        return game.get_safest_astar_action(), wiggle_moves - 1
+
+    # Main decision logic
+    if len(game.snake) < 70:
+        if danger and food_zone:
+            print("DQN Agent")
+            return agent.get_action(state, epsilon), wiggle_moves
+        elif danger and not food_zone:
+            print("Wiggle set")
+            return game.get_safest_astar_action(), 5
+        else:
+            move = game.get_next_astar_action()
+            if move is None:
+                print("DQN Agent fallback")
+                move = agent.get_action(state, epsilon)
+            return move, wiggle_moves
+
+    else:
+        # Large snake logic (epsilon-greedy with multiple strategies)
+        if random.random() < 0.01:
+            print("Epsilon-Greedy Mix")
+            move = random.choice([
+                game.get_next_astar_action(),
+                agent.get_action(state, epsilon),
+                game.get_safest_astar_action()
+            ])
+        else:
+            move = game.get_next_astar_action()
+
+        if move is None or (danger and food_zone):
+            print("DQN Agent")
+            move = agent.get_action(state, epsilon)
+        elif danger and not food_zone:
+            print("Wiggle set (big snake)")
+            return game.get_safest_astar_action(), 20
+
+        return move, wiggle_moves
+
+
 def play():
-    agent = Agent(model_path=MODEL_TO_USE)
-    epsilon = 0  # <-- Disable exploration
     game = Snake()
+    agent = Agent(model_path=MODEL_TO_USE)
+    wiggle_moves = 0
+    epsilon = 0
 
     while True:
-        state = agent.get_state(game)
-        
-        final_move = game.get_next_astar_action()
-        if final_move is not None: 
-            print("Algorithm: A")
-        if final_move is None: 
-            print("Algorithm: DQN")
-            final_move = agent.get_action(state, epsilon)
-            #final_move = agent.get_cnn_action(game)
-        if len(game.snake) > 70:
-            danger, food_zone = game.danger_zone_checker(game.snake[0])
-            wiggle_moves = 0
-            if danger and food_zone: 
-                final_move = agent.get_action(state, epsilon)
-            if wiggle_moves > 0:
-                wiggle_moves = len(game.snake)//2  
-                wiggle_moves -= 1
-                final_move = game.get_safest_astar_action()
-            else: 
-                final_move = agent.get_action(state, epsilon)
-        reward, done, score = game.play_step(final_move)
+        state = agent.get_state(game=game)
+        move, wiggle_moves = choose_action(agent, game, state, epsilon, wiggle_moves)
+        reward, done, score = game.play_step(move)
 
         if done:
             print('Game Over. Score:', score)
             game.reset()
+
+
 
 def play_mcts():
     agent = MCTSAgent(simulations_per_move=50)  # Adjust for speed/quality
