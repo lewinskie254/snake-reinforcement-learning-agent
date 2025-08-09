@@ -19,7 +19,7 @@ class Direction(Enum):
 MULTIPLIER =2
 # Constants
 BLOCK_SIZE = 20*MULTIPLIER
-SPEED = 10
+SPEED = 30
 GREENISH = (227, 208, 149)
 GREY = (54, 69, 79)
 MARGIN = 50 * MULTIPLIER
@@ -451,32 +451,52 @@ class Snake:
                 return [start] + shortest
 
         return stretched
-    
-    def danger_zone_checker(self, head, body): 
-        horizontal_clear_path_forward = head.x + 2* BLOCK_SIZE 
-        horizontal_clear_path_backward = head.x - 2* BLOCK_SIZE 
-        horizontal_clear_path_up = head.y - 2*BLOCK_SIZE
-        horizontal_clear_path_down = head.y -2*BLOCK_SIZE 
-
-        point_1 = Point(head.x, horizontal_clear_path_up)
-        point_2 = Point(head.x, horizontal_clear_path_down)
-        point_3 = Point(horizontal_clear_path_forward, head.y)
-        point_4 = Point(horizontal_clear_path_backward, head.y)
-
-        if self.direction == Direction.LEFT: 
-            return (self.is_collision(point_4) or self.is_collision(point_1) or self.is_collision(point_2))
-
-        if self.direction == Direction.RIGHT: 
-            return (self.is_collision(point_3) or self.is_collision(point_1) or self.is_collision(point_2))
         
-        if self.direction == Direction.UP: 
-            return (self.is_collision(point_1) or self.is_collision(point_3) or self.is_collision(point_4))
-        
-        if self.direction == Direction.DOWN:
-            return (self.is_collision(point_2) or self.is_collision(point_3) or self.is_collision(point_4))
-      
-        
-        return False
+    def danger_zone_checker(self, head, step_size=2):
+        horizontal_forward = head.x + BLOCK_SIZE
+        horizontal_backward = head.x - BLOCK_SIZE
+        vertical_up = head.y - BLOCK_SIZE
+        vertical_down = head.y + BLOCK_SIZE
+
+        two_forward = head.x + step_size * BLOCK_SIZE
+        two_backward = head.x - step_size * BLOCK_SIZE
+        two_up = head.y - step_size * BLOCK_SIZE
+        two_down = head.y + step_size * BLOCK_SIZE
+
+        # Points
+        point_forward_1 = Point(horizontal_forward, head.y)
+        point_forward_2 = Point(two_forward, head.y)
+        point_backward_1 = Point(horizontal_backward, head.y)
+        point_backward_2 = Point(two_backward, head.y)
+        point_up_1 = Point(head.x, vertical_up)
+        point_up_2 = Point(head.x, two_up)
+        point_down_1 = Point(head.x, vertical_down)
+        point_down_2 = Point(head.x, two_down)
+
+        danger = False
+        if self.direction == Direction.LEFT:
+            danger = (self.is_collision(point_backward_1) and self.is_collision(point_up_1)) or \
+                    (self.is_collision(point_backward_1) and self.is_collision(point_down_1)) or \
+                    (self.is_collision(point_backward_2) and self.is_collision(point_up_2)) or \
+                    (self.is_collision(point_backward_2) and self.is_collision(point_down_2))
+        elif self.direction == Direction.RIGHT:
+            danger = (self.is_collision(point_forward_1) and self.is_collision(point_up_1)) or \
+                    (self.is_collision(point_forward_1) and self.is_collision(point_down_1)) or \
+                    (self.is_collision(point_forward_2) and self.is_collision(point_up_2)) or \
+                    (self.is_collision(point_forward_2) and self.is_collision(point_down_2))
+        elif self.direction == Direction.UP:
+            danger = (self.is_collision(point_up_1) and self.is_collision(point_forward_1)) or \
+                    (self.is_collision(point_up_1) and self.is_collision(point_backward_1)) or \
+                    (self.is_collision(point_up_2) and self.is_collision(point_forward_2)) or \
+                    (self.is_collision(point_up_2) and self.is_collision(point_backward_2))
+        elif self.direction == Direction.DOWN:
+            danger = (self.is_collision(point_down_1) and self.is_collision(point_forward_1)) or \
+                    (self.is_collision(point_down_1) and self.is_collision(point_backward_1)) or \
+                    (self.is_collision(point_down_2) and self.is_collision(point_forward_2)) or \
+                    (self.is_collision(point_down_2) and self.is_collision(point_backward_2))
+
+        return danger
+
 
 
     def get_safest_astar_action(self):

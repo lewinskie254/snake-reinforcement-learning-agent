@@ -268,20 +268,32 @@ def play():
 
     while True:
         state = agent.get_state(game)
-        
+        danger = game.danger_zone_checker(game.snake[0])
+        wiggle_moves = 0
+        if danger: 
+            wiggle_moves = 20
+        if wiggle_moves > 0: 
+            print("Algorithm: Hamiltonian Path")
+            wiggle_moves -= 1
+            final_move = game.get_safest_astar_action()
         final_move = game.get_next_astar_action()
+        if final_move is not None: 
+            print("Algorithm: A*")
         if final_move is None: 
+            print("Algorithm: DQN")
             final_move = agent.get_action(state, epsilon)
             #final_move = agent.get_cnn_action(game)
         if len(game.snake) > 60:
-            danger = game.danger_zone_checker(game.snake[0])
+            danger = game.danger_zone_checker(game.snake[0], step_size=len(game.snake)//20)
             wiggle_moves = 0
             if danger: 
                 wiggle_moves = 10
             if wiggle_moves > 0: 
+                print("Algorithm: Hamiltonian Path")
                 wiggle_moves -= 1
                 final_move = game.get_safest_astar_action()
             else: 
+                print("Algorithm: DQN")
                 final_move = agent.get_action(state, epsilon)
         reward, done, score = game.play_step(final_move)
 
