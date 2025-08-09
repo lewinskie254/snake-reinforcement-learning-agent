@@ -268,8 +268,21 @@ def play():
 
     while True:
         state = agent.get_state(game)
-        final_move = agent.get_action(state, epsilon)
-        #final_move = agent.get_cnn_action(game)
+        
+        final_move = game.get_next_astar_action()
+        if final_move is None: 
+            final_move = agent.get_action(state, epsilon)
+            #final_move = agent.get_cnn_action(game)
+        if len(game.snake) > 60:
+            danger = game.danger_zone_checker(game.snake[0])
+            wiggle_moves = 0
+            if danger: 
+                wiggle_moves = 10
+            if wiggle_moves > 0: 
+                wiggle_moves -= 1
+                final_move = game.get_safest_astar_action()
+            else: 
+                final_move = agent.get_action(state, epsilon)
         reward, done, score = game.play_step(final_move)
 
         if done:
@@ -290,6 +303,6 @@ def play_mcts():
 
 
 if __name__ == "__main__":
-    train() 
-    #play()
+    #train() 
+    play()
     #play_mcts()

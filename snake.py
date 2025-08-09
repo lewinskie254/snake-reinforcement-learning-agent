@@ -2,7 +2,6 @@
 import pygame 
 import random 
 from enum import Enum
-from agent import MODEL_TO_USE, Agent
 from common import Point
 import numpy as np 
 import pygame.time
@@ -17,7 +16,7 @@ class Direction(Enum):
     UP = 3
     DOWN = 4
 
-MULTIPLIER =1
+MULTIPLIER =2
 # Constants
 BLOCK_SIZE = 20*MULTIPLIER
 SPEED = 10
@@ -294,35 +293,32 @@ class Snake:
             BORDER
         )
 
-        # If no path, fall back to straight
+        # If no path, use simple fallback logic
         if not path:
-            head_pos = self.snake[0]
-            point_forward = Point(head_pos.x + BLOCK_SIZE, head_pos.y)
-            point_backward = Point(head_pos.x - BLOCK_SIZE, head_pos.y)
-            point_up = Point(head_pos.x, head_pos.y- BLOCK_SIZE)
-            point_down = Point(head_pos.x, head_pos.y + BLOCK_SIZE)
-            if self.direction == Direction.RIGHT:
-                if self.is_collision(point_forward):
-                    #look above
-                    if self.is_collision(point_up):
-                        return [0, 1, 0] 
-                    if self.is_collision(point_down):
-                        return [0, 0, 1] 
-            if self.direction == Direction.LEFT:
-                if self.is_collision(point_forward):
-                    #look above
-                    if self.is_collision(point_up):
-                        return [0, 0, 1] 
-                    if self.is_collision(point_down):
-                        return [0, 1, 0] 
-            if self.direction == Direction.DOWN:
-                if self.is_collision(point_forward):
-                    #look above
-                    if self.is_collision(point_up):
-                        return [0, 0, 1] 
-                    if self.is_collision(point_down):
-                        return [0, 1, 0] 
-            return [1, 0, 0]
+            #NO DQN to guess 
+            # head_pos = self.snake[0]
+            # point_forward = Point(head_pos.x + (BLOCK_SIZE if self.direction == Direction.RIGHT else -BLOCK_SIZE if self.direction == Direction.LEFT else 0),
+            #                     head_pos.y + (BLOCK_SIZE if self.direction == Direction.DOWN else -BLOCK_SIZE if self.direction == Direction.UP else 0))
+            # point_left = Point(head_pos.x + (BLOCK_SIZE if self.direction == Direction.UP else -BLOCK_SIZE if self.direction == Direction.DOWN else 0),
+            #                 head_pos.y + (BLOCK_SIZE if self.direction == Direction.LEFT else -BLOCK_SIZE if self.direction == Direction.RIGHT else 0))
+            # point_right = Point(head_pos.x + (-BLOCK_SIZE if self.direction == Direction.UP else BLOCK_SIZE if self.direction == Direction.DOWN else 0),
+            #                     head_pos.y + (-BLOCK_SIZE if self.direction == Direction.LEFT else BLOCK_SIZE if self.direction == Direction.RIGHT else 0))
+
+            # # Forward clear → keep going
+            # if not self.is_collision(point_forward):
+            #     return [1, 0, 0]  # straight
+
+            # # Forward blocked → try left first
+            # if not self.is_collision(point_left):
+            #     return [0, 1, 0]  # turn left
+
+            # # Left blocked too → try right
+            # if not self.is_collision(point_right):
+            #     return [0, 0, 1]  # turn right
+
+            # No options → just keep going (likely game over)
+            return None
+
 
         # A* should return path where path[0] is the next tile (not the head)
         next_point = path[0]
@@ -356,6 +352,215 @@ class Snake:
         else:
             # Opposite direction (cannot reverse). Prefer turning right.
             return [0, 1, 0]
+    # inside class Snake
+
+    def _is_adjacent(self, a: Point, b: Point):
+        return (abs(a.x - b.x) + abs(a.y - b.y)) == BLOCK_SIZE
+
+    def _in_bounds(self, p: Point, width, height, border):
+        return border <= p.x < width - border and border <= p.y < height - border
+
+    def _reachable_area(self, start: Point, obstacles_set, width, height, border):
+        # BFS counting reachable cells from start (used for fallback choice)
+        from collections import deque
+        q = deque([start])
+        seen = {start}
+        count = 0
+        while q:
+            cur = q.popleft()
+            count += 1
+            for dx, dy in [(-BLOCK_SIZE,0),(BLOCK_SIZE,0),(0,-BLOCK_SIZE),(0,BLOCK_SIZE)]:
+                nx, ny = cur.x + dx, cur.y + dy
+                nb = Point(nx, ny)
+                if not self._in_bounds(nb, width, height, border): 
+                    continue
+                if nb in seen or nb in obstacles_set:
+                    continue
+                seen.add(nb)
+                q.append(nb)
+        return count
+
+    def get_longest_safe_path(self, start, goal, snake_body, width, height, block_size, border):
+        # 1) shortest path (exclude head from obstacles)
+        obstacles = set(snake_body[1:])
+        shortest = a_star(start, goal, obstacles, width, height, block_size, border)
+        if not shortest:
+            return None
+
+        # Ensure we include start at front for easier segment iteration
+        shortest_with_start = [start] + shortest
+
+        stretched = []
+        used = set(snake_body)  # avoid inserting into snake body cells
+
+        for i in range(len(shortest_with_start) - 1):
+            current = shortest_with_start[i]
+            nxt = shortest_with_start[i + 1]
+
+            # append current if not already last
+            if not stretched or stretched[-1] != current:
+                stretched.append(current)
+
+            dx = nxt.x - current.x
+            dy = nxt.y - current.y
+
+            # perpendicular detours (pixel deltas)
+            perp_dirs = [(-dy, dx), (dy, -dx)]
+
+            for pdx, pdy in perp_dirs:
+                det1 = Point(current.x + pdx, current.y + pdy)
+                det2 = Point(nxt.x + pdx, nxt.y + pdy)
+
+                # adjacency checks (det1 adjacent to current, det2 adjacent to nxt, det1 adjacent to det2)
+                if not (self._is_adjacent(det1, current) and self._is_adjacent(det2, nxt) and self._is_adjacent(det1, det2)):
+                    continue
+
+                # bounds check
+                if not (self._in_bounds(det1, width, height, border) and self._in_bounds(det2, width, height, border)):
+                    continue
+
+                # don't reuse cells (snake body or already used)
+                if det1 in used or det2 in used:
+                    continue
+
+                # don't insert detours that will cause re-entry into the remainder of the shortest path
+                # (prevents small cycles)
+                if det1 in shortest_with_start or det2 in shortest_with_start:
+                    continue
+
+                # Passed all checks: insert the detour pair
+                stretched.append(det1)
+                used.add(det1)
+                stretched.append(det2)
+                used.add(det2)
+                break  # only one detour per segment
+
+        # append final goal
+        if not stretched or stretched[-1] != shortest_with_start[-1]:
+            stretched.append(shortest_with_start[-1])
+
+        # final validation: path must be simple and consecutive points adjacent
+        # if validation fails, return the safe fallback: the (start +) shortest path
+        if len(set(stretched)) != len(stretched):
+            # got duplicates → revert to shortest
+            return [start] + shortest
+
+        for i in range(len(stretched) - 1):
+            if not self._is_adjacent(stretched[i], stretched[i+1]):
+                # invalid adjacency, revert
+                return [start] + shortest
+
+        return stretched
+    
+    def danger_zone_checker(self, head, body): 
+        horizontal_clear_path_forward = head.x + 2* BLOCK_SIZE 
+        horizontal_clear_path_backward = head.x - 2* BLOCK_SIZE 
+        horizontal_clear_path_up = head.y - 2*BLOCK_SIZE
+        horizontal_clear_path_down = head.y -2*BLOCK_SIZE 
+
+        point_1 = Point(head.x, horizontal_clear_path_up)
+        point_2 = Point(head.x, horizontal_clear_path_down)
+        point_3 = Point(horizontal_clear_path_forward, head.y)
+        point_4 = Point(horizontal_clear_path_backward, head.y)
+
+        if self.direction == Direction.LEFT: 
+            return (self.is_collision(point_4) or self.is_collision(point_1) or self.is_collision(point_2))
+
+        if self.direction == Direction.RIGHT: 
+            return (self.is_collision(point_3) or self.is_collision(point_1) or self.is_collision(point_2))
+        
+        if self.direction == Direction.UP: 
+            return (self.is_collision(point_1) or self.is_collision(point_3) or self.is_collision(point_4))
+        
+        if self.direction == Direction.DOWN:
+            return (self.is_collision(point_2) or self.is_collision(point_3) or self.is_collision(point_4))
+      
+        
+        return False
+
+
+    def get_safest_astar_action(self):
+        # Try the stretched path first
+        path = self.get_longest_safe_path(
+            self.head,
+            self.food,
+            self.snake,
+            self.width,
+            self.height,
+            BLOCK_SIZE,
+            BORDER
+        )
+
+        # If no path or path too short, fallback using reachable-area heuristic
+        if not path or len(path) < 2:
+            return self._fallback_action_by_area()
+
+        # Our stretched path is returned with start included: path[0] == head, so use path[1]
+        next_point = path[1]
+        dx = next_point.x - self.head.x
+        dy = next_point.y - self.head.y
+
+        if dx > 0:
+            desired = Direction.RIGHT
+        elif dx < 0:
+            desired = Direction.LEFT
+        elif dy > 0:
+            desired = Direction.DOWN
+        elif dy < 0:
+            desired = Direction.UP
+        else:
+            return [1, 0, 0]
+
+        # convert to relative action
+        clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        current_idx = clock_wise.index(self.direction)
+        desired_idx = clock_wise.index(desired)
+
+        if desired_idx == current_idx:
+            return [1, 0, 0]   # straight
+        elif desired_idx == (current_idx + 1) % 4:
+            return [0, 1, 0]   # right
+        elif desired_idx == (current_idx - 1) % 4:
+            return [0, 0, 1]   # left
+        else:
+            # opposite - prefer right
+            return [0, 1, 0]
+
+    def _fallback_action_by_area(self):
+        # Evaluate the three candidate moves (straight, left, right) and pick the one with the largest reachable area.
+        head = self.head
+        clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        idx = clock_wise.index(self.direction)
+
+        candidates = []
+        # map relative action to new head point
+        for rel_action, offset_idx in ( ([1,0,0], idx), ([0,1,0], (idx+1)%4), ([0,0,1], (idx-1)%4) ):
+            dir_ = clock_wise[offset_idx]
+            nx, ny = head.x, head.y
+            if dir_ == Direction.RIGHT: nx += BLOCK_SIZE
+            elif dir_ == Direction.LEFT: nx -= BLOCK_SIZE
+            elif dir_ == Direction.UP: ny -= BLOCK_SIZE
+            elif dir_ == Direction.DOWN: ny += BLOCK_SIZE
+            new_pt = Point(nx, ny)
+
+            # If immediate collision, reachable area = -1 (disqualify)
+            if not self._in_bounds(new_pt, self.width, self.height, BORDER) or new_pt in set(self.snake[1:]):
+                area = -1
+            else:
+                # obstacles are current snake body excluding tail (tail will move), but excluding head since we're measuring after moving head
+                obstacles = set(self.snake[1:])  # conservative
+                # simulate that new_pt becomes head and old tail will free — being conservative here is okay
+                area = self._reachable_area(new_pt, obstacles, self.width, self.height, BORDER)
+
+            candidates.append((area, rel_action))
+
+        # choose best area (largest), tiebreaker prefer straight, then right, then left
+        candidates.sort(key=lambda x: (x[0], [1,0,0]==x[1], [0,1,0]==x[1]), reverse=True)
+        best_area, best_action = candidates[0]
+        if best_area <= 0:
+            # nothing good — go straight as last resort
+            return [1, 0, 0]
+        return best_action
 
 
 
