@@ -2,6 +2,7 @@
 import pygame 
 import random 
 from enum import Enum
+from agent import MODEL_TO_USE, Agent
 from common import Point
 import numpy as np 
 import pygame.time
@@ -278,53 +279,86 @@ class Snake:
 
         return grid
 
-    def get_cnn_state(self, game):
-        grid = np.zeros((3, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE), dtype=np.float32)
-
-        for i, point in enumerate(game.snake):
-            x, y = point.x // BLOCK_SIZE, point.y // BLOCK_SIZE
-            if i == 0:
-                grid[0][y][x] = 1.0  # Head
-            else:
-                grid[0][y][x] = 0.5  # Body
-
-        food_x, food_y = game.food.x // BLOCK_SIZE, game.food.y // BLOCK_SIZE
-        grid[1][food_y][food_x] = 1.0  # Food
-
-        # Optional wall layer (if needed)
-        grid[2][0, :] = 1.0
-        grid[2][-1, :] = 1.0
-        grid[2][:, 0] = 1.0
-        grid[2][:, -1] = 1.0
-
-        return grid
 
 
 
     def get_next_astar_action(self):
+        # Run A*
         path = a_star(
             self.head,
             self.food,
-            set(self.snake),
+            set(self.snake[1:]),  # exclude head from obstacles
             self.width,
             self.height,
             BLOCK_SIZE,
             BORDER
         )
-        if path and len(path) >= 1:
-            next_point = path[0]
-            dx = next_point.x - self.head.x
-            dy = next_point.y - self.head.y
-            if dx > 0:
-                return [0, 1, 0] if self.direction == Direction.UP else [1, 0, 0]  # RIGHT
-            elif dx < 0:
-                return [0, 1, 0] if self.direction == Direction.DOWN else [1, 0, 0]  # LEFT
-            elif dy > 0:
-                return [0, 1, 0] if self.direction == Direction.LEFT else [1, 0, 0]  # DOWN
-            elif dy < 0:
-                return [0, 1, 0] if self.direction == Direction.RIGHT else [1, 0, 0]  # UP
+
+        # If no path, fall back to straight
+        if not path:
+            head_pos = self.snake[0]
+            point_forward = Point(head_pos.x + BLOCK_SIZE, head_pos.y)
+            point_backward = Point(head_pos.x - BLOCK_SIZE, head_pos.y)
+            point_up = Point(head_pos.x, head_pos.y- BLOCK_SIZE)
+            point_down = Point(head_pos.x, head_pos.y + BLOCK_SIZE)
+            if self.direction == Direction.RIGHT:
+                if self.is_collision(point_forward):
+                    #look above
+                    if self.is_collision(point_up):
+                        return [0, 1, 0] 
+                    if self.is_collision(point_down):
+                        return [0, 0, 1] 
+            if self.direction == Direction.LEFT:
+                if self.is_collision(point_forward):
+                    #look above
+                    if self.is_collision(point_up):
+                        return [0, 0, 1] 
+                    if self.is_collision(point_down):
+                        return [0, 1, 0] 
+            if self.direction == Direction.DOWN:
+                if self.is_collision(point_forward):
+                    #look above
+                    if self.is_collision(point_up):
+                        return [0, 0, 1] 
+                    if self.is_collision(point_down):
+                        return [0, 1, 0] 
+            return [1, 0, 0]
+
+        # A* should return path where path[0] is the next tile (not the head)
+        next_point = path[0]
+        dx = next_point.x - self.head.x
+        dy = next_point.y - self.head.y
+
+        # Desired absolute direction
+        if dx > 0:
+            desired = Direction.RIGHT
+        elif dx < 0:
+            desired = Direction.LEFT
+        elif dy > 0:
+            desired = Direction.DOWN
+        elif dy < 0:
+            desired = Direction.UP
         else:
-            return [1, 0, 0]  # Default: straight
+            # Unexpected: no movement delta -> go straight
+            return [1, 0, 0]
+
+        # Convert absolute direction to relative action expected by move()
+        clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        current_idx = clock_wise.index(self.direction)
+        desired_idx = clock_wise.index(desired)
+
+        if desired_idx == current_idx:
+            return [1, 0, 0]               # straight
+        elif desired_idx == (current_idx + 1) % 4:
+            return [0, 1, 0]               # right turn
+        elif desired_idx == (current_idx - 1) % 4:
+            return [0, 0, 1]               # left turn
+        else:
+            # Opposite direction (cannot reverse). Prefer turning right.
+            return [0, 1, 0]
+
+
+
 
 
 

@@ -38,74 +38,74 @@ class QTrainer:
         self.optimizer = optim.Adam(model.parameters(), lr =self.learning_rate) 
         self.loss  = nn.MSELoss()
     
-    # def train_step(self, state, action, reward, next_state, done):
-    #     state = torch.tensor(state, dtype=torch.float)
-    #     next_state = torch.tensor(next_state, dtype=torch.float32)
-    #     action = torch.tensor(action, dtype=torch.long)
-    #     reward = torch.tensor(reward, dtype=torch.float32)
-
-    #     if len(state.shape) == 1:
-    #         state = torch.unsqueeze(state, axis=0)
-    #         next_state = torch.unsqueeze(next_state, axis=0)
-    #         action = torch.unsqueeze(action, axis=0)
-    #         reward = torch.unsqueeze(reward, axis=0)
-    #         done = (done, )
-        
-    #     #1: predicted Q-Values with current state  
-    #     pred = self.model(state)
-    #     target = pred.clone()
-
-    #     #2: reward + gamma * next prediction value 
-    #     for index in range(len(done)):
-    #         Q_new = reward[index]
-    #         if not done[index]: 
-    #             future_q = self.model(next_state[index])
-    #             Q_new = reward[index] +self.gamma * torch.max(future_q)
-            
-    #         target[index][torch.argmax(action).item()] = Q_new
-        
-    #     self.optimizer.zero_grad()
-    #     loss = self.loss(target, pred)
-    #     loss.backward()
-
-    #     self.optimizer.step()
-        
     def train_step(self, state, action, reward, next_state, done):
-        # Convert all to tensors
-        state = torch.tensor(state, dtype=torch.float32)       # (batch, 1, 10, 10)
+        state = torch.tensor(state, dtype=torch.float)
         next_state = torch.tensor(next_state, dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.long)        # (batch, 3) one-hot
+        action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float32)
-        done = torch.tensor(done, dtype=torch.bool)
 
-        # Make sure there's a batch dimension
-        if len(state.shape) == 3:
-            state = state.unsqueeze(0)         # (1, 1, 10, 10)
-            next_state = next_state.unsqueeze(0)
-            action = action.unsqueeze(0)
-            reward = reward.unsqueeze(0)
-            done = done.unsqueeze(0)
-
-        # 1. Predict Q-values from current state
-        pred = self.model(state)               # (batch, 3)
-
-        # 2. Predict Q-values from next state
-        with torch.no_grad():
-            next_pred = self.model(next_state) # (batch, 3)
-
+        if len(state.shape) == 1:
+            state = torch.unsqueeze(state, axis=0)
+            next_state = torch.unsqueeze(next_state, axis=0)
+            action = torch.unsqueeze(action, axis=0)
+            reward = torch.unsqueeze(reward, axis=0)
+            done = (done, )
+        
+        #1: predicted Q-Values with current state  
+        pred = self.model(state)
         target = pred.clone()
-        for idx in range(len(done)):
-            q_new = reward[idx]
-            if not done[idx]:
-                q_new += self.gamma * torch.max(next_pred[idx])
-            move_idx = torch.argmax(action[idx]).item()
-            target[idx][move_idx] = q_new
 
-        # 3. Backpropagation
+        #2: reward + gamma * next prediction value 
+        for index in range(len(done)):
+            Q_new = reward[index]
+            if not done[index]: 
+                future_q = self.model(next_state[index])
+                Q_new = reward[index] +self.gamma * torch.max(future_q)
+            
+            target[index][torch.argmax(action).item()] = Q_new
+        
         self.optimizer.zero_grad()
-        loss = self.loss(pred, target)
+        loss = self.loss(target, pred)
         loss.backward()
+
         self.optimizer.step()
+        
+    # def train_step(self, state, action, reward, next_state, done):
+    #     # Convert all to tensors
+    #     state = torch.tensor(state, dtype=torch.float32)       # (batch, 1, 10, 10)
+    #     next_state = torch.tensor(next_state, dtype=torch.float32)
+    #     action = torch.tensor(action, dtype=torch.long)        # (batch, 3) one-hot
+    #     reward = torch.tensor(reward, dtype=torch.float32)
+    #     done = torch.tensor(done, dtype=torch.bool)
+
+    #     # Make sure there's a batch dimension
+    #     if len(state.shape) == 3:
+    #         state = state.unsqueeze(0)         # (1, 1, 10, 10)
+    #         next_state = next_state.unsqueeze(0)
+    #         action = action.unsqueeze(0)
+    #         reward = reward.unsqueeze(0)
+    #         done = done.unsqueeze(0)
+
+    #     # 1. Predict Q-values from current state
+    #     pred = self.model(state)               # (batch, 3)
+
+    #     # 2. Predict Q-values from next state
+    #     with torch.no_grad():
+    #         next_pred = self.model(next_state) # (batch, 3)
+
+    #     target = pred.clone()
+    #     for idx in range(len(done)):
+    #         q_new = reward[idx]
+    #         if not done[idx]:
+    #             q_new += self.gamma * torch.max(next_pred[idx])
+    #         move_idx = torch.argmax(action[idx]).item()
+    #         target[idx][move_idx] = q_new
+
+    #     # 3. Backpropagation
+    #     self.optimizer.zero_grad()
+    #     loss = self.loss(pred, target)
+    #     loss.backward()
+    #     self.optimizer.step()
 
      
 

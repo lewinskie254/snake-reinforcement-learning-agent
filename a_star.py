@@ -29,7 +29,7 @@ def a_star(start, goal, snake_body, width, height, block_size, border):
                 path.append(current)
                 current = came_from[current]
             path.reverse()
-            return path
+            return path  # path starts with NEXT tile, not head
 
         visited.add(current)
 
@@ -44,4 +44,4 @@ def a_star(start, goal, snake_body, width, height, block_size, border):
                 f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
                 heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
-    return None  # No path found
+    return []
