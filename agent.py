@@ -297,44 +297,42 @@ def play():
 
     while True:
         state = agent.get_state(game=game)
-        #final_move = game.get_next_astar_action()
-        #danger, food_zone = game.danger_zone_checker(game.snake[0])
-
-        final_move = agent.get_action(state, epsilon)
-        # if len(game.snake) < 70: 
-        #     if danger and not food_zone: 
-        #         wiggle_moves = 5 
-        #     elif danger and food_zone: 
-        #         print("DQN Agent")
-        #         final_move = agent.get_action(state, epsilon)
-        #     elif wiggle_moves: 
-        #         wiggle_moves -= 1
-        #         print("Hamiltonian Agent")
-        #         final_move = game.get_safest_astar_action()
-        #     else: 
-        #         print("A* Agent")
-        #         final_move = game.get_next_astar_action()
-        #         if final_move is None: 
-        #             print("DQN Agent")
-        #             final_move = agent.get_action(state, epsilon)
-        # else: 
-        #     danger, food_zone = game.danger_zone_checker(game.snake[0])
-        #     if danger and food_zone: 
-        #         wiggle_moves = 5
-        #     elif danger and not food_zone: 
-        #         wiggle_moves = 7
+        final_move = game.get_next_astar_action()
+        danger, food_zone = game.danger_zone_checker(game.snake[0])
+        if len(game.snake) < 70: 
+            if danger and not food_zone: 
+                wiggle_moves = 5 
+            elif danger and food_zone: 
+                #print("DQN Agent")
+                final_move = agent.get_action(state, epsilon)
+            elif wiggle_moves: 
+                wiggle_moves -= 1
+                #print("Hamiltonian Agent")
+                final_move = game.get_safest_astar_action()
+            else: 
+                #print("A* Agent")
+                final_move = game.get_next_astar_action()
+                if final_move is None: 
+                    #print("DQN Agent")
+                    final_move = agent.get_action(state, epsilon)
+        else: 
+            danger, food_zone = game.danger_zone_checker(game.snake[0])
+            if danger and food_zone: 
+                wiggle_moves = 5
+            elif danger and not food_zone: 
+                wiggle_moves = 7
             
-        #     if wiggle_moves: 
-        #         wiggle_moves -= 1
-        #         print("Hamiltonian")
-        #         final_move = game.get_safest_astar_action()
-        #     else: 
-        #         print("A star")
-        #         final_move = game.get_next_astar_action()
+            if wiggle_moves: 
+                wiggle_moves -= 1
+                #print("Hamiltonian")
+                final_move = game.get_safest_astar_action()
+            else: 
+                #print("A star")
+                final_move = game.get_next_astar_action()
 
-        #         if final_move is None: 
-        #             print("DQN Algo")
-        #             final_move = agent.get_action(state, epsilon)
+                if final_move is None: 
+                    #print("DQN Algo")
+                    final_move = agent.get_action(state, epsilon)
 
         
         reward, done, score = game.play_step(final_move)
@@ -359,6 +357,6 @@ def play_mcts():
 
 
 if __name__ == "__main__":
-    train() 
-    #play()
+    #train() 
+    play()
     #play_mcts()
