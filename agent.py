@@ -218,26 +218,35 @@ def train():
     agent.number_of_games += 1
 
     while True:
-        #get the old state or current state 
+        # Get current state
         state_old = agent.get_state(game)
         #state_old = agent.get_cnn_state(game)
-        #get move 
-        final_move = agent.get_action(state_old)
-        #final_move = agent.get_cnn_action(state_old)
-        #perform the move 
+        
+        # --- Imitation Learning: get expert move ---
+        expert_move_astar = game.get_next_astar_action()
+        expert_move_safest = game.get_safest_astar_action()
+
+        # Decide whether to follow expert or DQN
+        use_expert = random.random() < 0.3  # 30% of time follow expert
+        if use_expert:
+            # Prefer longest safe path if available
+            final_move = expert_move_safest if expert_move_safest else expert_move_astar
+        else:
+            final_move = agent.get_action(state_old)
+
+        # Perform the move
         reward, done, score = game.play_step(final_move)
 
-        #new state 
+        # New state
         state_new = agent.get_state(game)
 
-        #train short memory
+        # Train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        #remember 
+        # Remember (imitation + experience replay)
         agent.remember(state_old, final_move, reward, state_new, done)
 
-        if done: 
-            #train the long memory 
+        if done:
             game.reset()
             agent.number_of_games += 1
             agent.train_long_memory() 
@@ -245,17 +254,14 @@ def train():
             if score > best_score:
                 best_score = score 
                 agent.model.save() 
-            print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
 
-            if len(plot_scores) >= 10:
-                best_recent = max(plot_scores[-10:])
-                if score > best_recent:
-                    agent.model.save('best_most_recent.pth')
+            print('Game', agent.number_of_games, 'Score', score, 'Best Score', best_score)
 
             plot_scores.append(score)
             total_score += score 
             mean_score = total_score / agent.number_of_games 
             plot_mean_scores.append(mean_score)
+
             if agent.number_of_games % 100 == 1: 
                 plot(plot_scores, plot_mean_scores)
                 
@@ -295,7 +301,7 @@ def play():
             if danger and food_zone: 
                 wiggle_moves = 5
             elif danger and not food_zone: 
-                wiggle_moves = 77 
+                wiggle_moves = 7
             
             if wiggle_moves: 
                 wiggle_moves -= 1

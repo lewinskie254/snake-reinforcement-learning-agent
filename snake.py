@@ -6,6 +6,8 @@ from common import Point
 import numpy as np 
 import pygame.time
 from a_star import a_star
+from collections import deque
+
 
 
 pygame.init()
@@ -279,27 +281,62 @@ class Snake:
         return grid
     
 
-    def food_in_tight_spot(self,): 
+    # def food_in_tight_spot(self,): 
+    #     x_food, y_food = self.food.x, self.food.y
+
+    #     left_most_x = float("inf")
+    #     right_most_x = -float("inf")
+
+    #     top_most_y = float("inf")
+    #     bottom_most_y = -float("inf")
+
+    #     for point in self.snake[1:]: 
+    #         left_most_x = min(left_most_x, point.x)
+    #         right_most_x = max(right_most_x, point.x)
+    #         top_most_y = min(top_most_y, point.y)
+    #         bottom_most_y = max(bottom_most_y, point.y)
+        
+    #     condition = ((left_most_x - 2*BLOCK_SIZE) < x_food < (right_most_x - 2*BLOCK_SIZE)) and ((top_most_y + 2*BLOCK_SIZE) < y_food < (bottom_most_y - 2*BLOCK_SIZE))
+    #     if condition: 
+    #         print(f"Food x {x_food}, leftMost x = {left_most_x - 2*BLOCK_SIZE}, rightMost x = {(right_most_x - 2*BLOCK_SIZE)}")
+    #         print((f"Food y = {y_food}, topMost y = {(top_most_y + 2*BLOCK_SIZE)} bottomMost y = {(bottom_most_y - 2*BLOCK_SIZE)} "))
+
+    #     return condition
+ 
+    def food_in_tight_spot(self):
         x_food, y_food = self.food.x, self.food.y
 
-        left_most_x = float("inf")
-        right_most_x = -float("inf")
+        left_most_x = min(p.x for p in self.snake[1:])
+        right_most_x = max(p.x for p in self.snake[1:])
+        top_most_y = min(p.y for p in self.snake[1:])
+        bottom_most_y = max(p.y for p in self.snake[1:])
 
-        top_most_y = float("inf")
-        bottom_most_y = -float("inf")
+        # Quick filter: if it's not inside the bounding box, it's not in a tight spot
+        if not (left_most_x < x_food < right_most_x and top_most_y < y_food < bottom_most_y):
+            return False
 
-        for point in self.snake[1:]: 
-            left_most_x = min(left_most_x, point.x)
-            right_most_x = max(right_most_x, point.x)
-            top_most_y = min(top_most_y, point.y)
-            bottom_most_y = max(bottom_most_y, point.y)
-        
-        condition = ((left_most_x - 2*BLOCK_SIZE) < x_food < (right_most_x - 2*BLOCK_SIZE)) and ((top_most_y + 2*BLOCK_SIZE) < y_food < (bottom_most_y - 2*BLOCK_SIZE))
-        if condition: 
-            print(f"Food x {x_food}, leftMost x = {left_most_x - 2*BLOCK_SIZE}, rightMost x = {(right_most_x - 2*BLOCK_SIZE)}")
-            print((f"Food y = {y_food}, topMost y = {(top_most_y + 2*BLOCK_SIZE)} bottomMost y = {(bottom_most_y - 2*BLOCK_SIZE)} "))
+        # BFS to check if food can reach outside without crossing snake
+        visited = set()
+        queue = deque([(x_food, y_food)])
+        snake_body = {(p.x, p.y) for p in self.snake}
 
-        return condition
+        directions = [(20,0), (-20,0), (0,20), (0,-20)]  # BLOCK_SIZE = 20
+
+        while queue:
+            x, y = queue.popleft()
+
+            # If we reached outside bounding box → not a tight spot
+            if x <= left_most_x or x >= right_most_x or y <= top_most_y or y >= bottom_most_y:
+                return False
+
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if (nx, ny) not in visited and (nx, ny) not in snake_body:
+                    visited.add((nx, ny))
+                    queue.append((nx, ny))
+
+        # No way out → tight spot
+        return True
 
 
 
