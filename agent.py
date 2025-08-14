@@ -289,7 +289,7 @@ def train():
 
 def play():
     game = Snake()
-    agent = Agent(model_path=MODEL_TO_USE)
+    agent = Agent(model_path='models/model copy 10.pth')
     wiggle_moves = 0  # <-- Persist across frames
     epsilon = 0
 
@@ -355,6 +355,6 @@ def play_mcts():
 
 
 if __name__ == "__main__":
-    train() 
-    #play()
+    #train() 
+    play()
     #play_mcts()
