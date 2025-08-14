@@ -287,8 +287,6 @@ def train():
                 
 
 
-import random
-
 def play():
     game = Snake()
     agent = Agent(model_path=MODEL_TO_USE)
@@ -357,6 +355,6 @@ def play_mcts():
 
 
 if __name__ == "__main__":
-    #train() 
-    play()
+    train() 
+    #play()
     #play_mcts()
