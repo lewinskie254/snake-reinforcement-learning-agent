@@ -62,7 +62,9 @@ class QTrainer:
                 future_q = self.model(next_state[index])
                 Q_new = reward[index] +self.gamma * torch.max(future_q)
             
-            target[index][torch.argmax(action).item()] = Q_new
+            move_idx = torch.argmax(action[index]).item()
+            target[index][move_idx] = Q_new
+
         
         self.optimizer.zero_grad()
         loss = self.loss(target, pred)
