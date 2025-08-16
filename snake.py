@@ -44,63 +44,70 @@ class Snake:
 
         self.reset()
      
+     #new reward trying 
     
     def play_step(self, action=None, manual=False):
         self.frame_iteration += 1
-        # Handle events
-        for event in pygame.event.get(): 
+
+        # Handle quit events
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-            # if event.type == pygame.KEYDOWN:
-            #     if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
-            #         self.direction = Direction.LEFT
-            #     elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
-            #         self.direction = Direction.RIGHT
-            #     elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
-            #         self.direction = Direction.UP
-            #     elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
-            #         self.direction = Direction.DOWN 
-        
 
-        
+        # Track old distance to food
+        old_head = self.head
+        old_dist = abs(old_head.x - self.food.x) + abs(old_head.y - self.food.y)
+
         # Move
         if manual:
             self.move_manual()
         else:
             self.move(action)
         self.snake.insert(0, self.head)
-        reward = 0
+
+        reward = 0.0
+
         # Check if food is eaten
         if self.head == self.food:
             self.score += 1
-            reward += 10 
+            reward += 10.0
             self._place_food()
         else:
             self.snake.pop()
 
-        # Check collision or if the game takes way too long 
-        if self.is_collision() or self.frame_iteration > 100*len(self.snake):
-            if self.display is not None: 
-                #hacky way hoping it works 
+            # Reward shaping: distance to food
+            new_dist = abs(self.head.x - self.food.x) + abs(self.head.y - self.food.y)
+            if new_dist < old_dist:
+                reward += 0.2   # moved closer
+            else:
+                reward -= 0.2   # moved away
+
+        # Small survival bonus
+        reward += 0.01
+
+        # Check collision or timeout
+        if self.is_collision() or self.frame_iteration > 100 * len(self.snake):
+            if self.display is not None:
+                # Visual crash effect
                 self.snake.pop(0)
                 self.snake.pop()
-
                 for point in self.snake:
                     pygame.draw.rect(self.display, CRASH, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
                     pygame.draw.rect(self.display, GREENISH, pygame.Rect(point.x+2, point.y+2, BLOCK_SIZE-4, BLOCK_SIZE-4))
                     pygame.draw.rect(self.display, CRASH, pygame.Rect(point.x+4, point.y+4, BLOCK_SIZE-8, BLOCK_SIZE-8))
                 pygame.display.update()
-                pygame.time.delay(500)  # delay for 0.5 seconds
-                reward -= 10
-                return reward, True, self.score
-        if self.display is not None: 
-            # Update UI
+                pygame.time.delay(500)
+            reward -= 10.0
+            return reward, True, self.score
+
+        # Update UI
+        if self.display is not None:
             self._update_ui()
             self.clock.tick(SPEED)
-            reward-= 0.1 
 
-        return reward, False, self.score 
+        return reward, False, self.score
+
     
     def move(self, action): 
         x, y = self.head.x, self.head.y 
@@ -690,6 +697,5 @@ def play_with_astar():
             game.reset()
 
 if __name__ == "__main__":
-    play_with_astar()
-    #play_manual()
-    
+    #play_with_astar()
+    play_manual()
